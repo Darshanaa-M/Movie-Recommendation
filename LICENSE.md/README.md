@@ -1,0 +1,132 @@
+# Movie-Recommendation
+
+---
+title: "Movies Recommendation"
+author: Darshanaa
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Reading the file}
+train_data=read.csv("train_v2.csv",header=TRUE)
+head(train_data)
+train_data=train_data[,-1]
+View(train_data)
+```
+
+```{r #Matrix Creation}
+library(reshape2)
+ratingMatrix=acast(train_data,user ~ movie)
+View(ratingMatrix)
+```
+
+```{r }
+library(arules)
+library(recommenderlab)
+#ratingMatrix=as.matrix(ratingMatrix)
+#convert R into realRating Matrix data structure
+#  realRatingMatrix is a recommenderlab sparse-matrix like data structure
+ratingMatrix=as(ratingMatrix,"realRatingMatrix")
+View(ratingMatrix)
+```
+
+```{r #view in other posible ways}
+as(ratingMatrix,"list")
+as(ratingMatrix,"matrix")
+```
+
+
+```{r }
+data("MovieLense")
+MovieLense
+
+sample_MovieLense=sample.int(nrow(MovieLense),0.999*(nrow(MovieLense)))
+train_MovieLense=MovieLense[sample_MovieLense]
+test_MovieLense=MovieLense[-sample_MovieLense]
+
+#Recommendation model building
+recom_model_ML= Recommender(train_MovieLense,method= "UBCF") #User Based Collaborative Filtering
+
+#predict by the model
+predict_ML=predict(recom_model_ML,test_MovieLense,n=3)
+
+predict_ML_list=as(predict_ML,"list")
+test_MovieLense_list= as(test_MovieLense,"list")
+predict_ML_list
+test_MovieLense_list
+
+```
+
+
+
+```{r Class created dataset}
+class=read.csv("class_dataset.csv",header=TRUE)
+class
+
+
+index=unique(class$Reg.Ids)
+train_m=class[-c(index),]
+test_m=class[c(index),]
+
+#Recommendation model building
+library(recommenderlab)
+library(arules)
+recom_model_movie= Recommender(train_m,method= "UBCF") #User Based Collaborative Filtering
+
+#predict by the model
+predict_movie=predict(recom_model_movie,test_m,n=3)
+
+predict_movie_list=as(predict_movie,"list")
+test_movie_list= as(test_m,"list")
+predict_movie_list
+test_movie_list
+
+
+```
+
+
+```{r}
+library(arules)
+library(recommenderlab)
+
+class=read.csv("Movie_Data1.csv",header=TRUE)
+
+#sample_M=c(1:10) 
+library(reshape2)
+movie_rating=acast(class,Reg.Ids~MovieName)
+#train_M=movie[movie$Reg.ids!=32,]
+
+#test_M=movie[movie$Reg.ids==32,]
+movie_rating=as(movie_rating,"realRatingMatrix")
+#set.seed(32)
+sample_M=sample.int(nrow(movie_rating),0.999*nrow(movie_rating))
+train_M=movie_rating[-12,]
+test_M=movie_rating[12,]
+
+
+#train_M<-as(train_M,"realRatingMatrix")
+recom_model_M=Recommender(train_M, method="SVD")
+#test_M<-as(test_M,"realRatingMatrix")
+predict_M=predict(recom_model_M,test_M,n=5)
+
+as(predict_M,"list")
+as(test_M,"list")
+```
+
+```{r #Evaluation scheme }
+library(arules)
+library(recommenderlab)
+data("MovieLense")
+
+scheme=evaluationScheme(MovieLense,method="split",train=.9,given=3,goodRating=4)
+scheme
+
+algorithm=list("random items" = list(name="RANDOM"), "popular items" = list(name="POPULAR"), "user-based CF" = list(name="UBCF"), "svd" = list(name="SVD"))
+
+results=evaluate(scheme,algorithm,n=c(1,3,4,10,15,20,25))
+
+plot=plot(results,annotate=1:4,legend="topleft")
+```
